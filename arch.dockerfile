@@ -9,15 +9,16 @@ RUN pacman -Syu --noconfirm \
 COPY *.go /app/
 COPY go.* /app/
 
-# Copy the Expect script into the container
+# Copy the scripts into the container
+COPY echo_ver_and_run_test.sh /app/
 COPY dlv_test.exp /app/
 
 # Set the working directory to /app
 WORKDIR /app
 
-# Make the Expect script executable
-RUN chmod +x /app/dlv_test.exp
+# Make the scripts executable
+RUN chmod +x /app/echo_ver_and_run_test.sh && chmod +x /app/dlv_test.exp
 
 # Run the Expect script when the container starts
-CMD ["/app/dlv_test.exp"]
+CMD ["/app/echo_ver_and_run_test.sh"]
 
