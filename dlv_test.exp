@@ -1,0 +1,31 @@
+#!/usr/bin/expect
+
+# Set the timeout to a sufficiently long period
+set timeout 30
+
+# Start the Delve debugger
+spawn dlv test ./
+
+# Wait for the debugger to start
+expect "(dlv)"
+
+# Set a breakpoint
+send "break ./emulate_cycle.go:194\r"
+
+# Wait for confirmation of breakpoint
+expect "(dlv)"
+
+# Continue execution
+send "continue\r"
+
+# Wait for the breakpoint to be hit or other debugger output
+expect "(dlv)"
+
+# Print the stack and variables
+send "stack -full\r"
+
+# Wait for stack output
+expect "(dlv)"
+
+# Hand over control
+interact
