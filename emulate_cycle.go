@@ -1,6 +1,8 @@
 package main
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 func (chip *Chip8) emulateCycle(opcode uint16) {
 	if opcode == 0 {
@@ -148,103 +150,313 @@ func (chip *Chip8) callSubroutine(address uint16) {
 }
 
 func (chip *Chip8) skipIfEqual(register uint16, value uint16) {
-	if chip.V[register>>8] == uint8(value) {
+	vIndex := register >> 8
+	comparisonValue := value >> 4
+
+	vValue := chip.V[vIndex]
+	originalPc := chip.pc
+
+	registerEqual := vValue == uint8(value)
+	if registerEqual {
 		chip.pc += 2
 	}
+
+	LogOperation("skipIfEqual", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"vValue", vValue}}},
+		{Pairs: []LogPair{{"comparisonValue", comparisonValue}}},
+		{Pairs: []LogPair{{"registerEqual", registerEqual}}},
+		{Pairs: []LogPair{{"originalPc", originalPc}, {"PC", chip.pc}}},
+	})
 }
 
-func (chip *Chip8) skipIfNotEqual(opcode uint16, value uint16) {
-	if chip.V[opcode>>8] != uint8(value) {
+func (chip *Chip8) skipIfNotEqual(register uint16, value uint16) {
+	vIndex := register >> 8
+	comparisonValue := value >> 4
+
+	vValue := chip.V[vIndex]
+	originalPc := chip.pc
+
+	registerNotEqual := vValue != uint8(value)
+	if registerNotEqual {
 		chip.pc += 2
 	}
+
+	LogOperation("skipIfNotEqual", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"vValue", vValue}}},
+		{Pairs: []LogPair{{"comparisonValue", comparisonValue}}},
+		{Pairs: []LogPair{{"registerNotEqual", registerNotEqual}}},
+		{Pairs: []LogPair{{"originalPc", originalPc}, {"PC", chip.pc}}},
+	})
 }
 
 func (chip *Chip8) skipIfRegistersEqual(registerX uint16, registerY uint16) {
-	if chip.V[registerX>>8] == chip.V[registerY>>4] {
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+	originalPc := chip.pc
+
+	registersEqual := chip.V[vxIndex] == chip.V[vyIndex]
+	if registersEqual {
 		chip.pc += 2
 	}
+
+	LogOperation("skipIfRegistersEqual", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"registersEqual", registersEqual}}},
+		{Pairs: []LogPair{{"originalPc", originalPc}, {"PC", chip.pc}}},
+	})
 }
 
-func (chip *Chip8) setRegister(registerX uint16, value uint16) {
-	chip.V[registerX>>8] = uint8(value)
+func (chip *Chip8) setRegister(register uint16, value uint16) {
+	vIndex := register >> 8
+
+	originalV := chip.V[vIndex]
+
+	chip.V[vIndex] = uint8(value)
+
+	LogOperation("setRegister", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"originalV", originalV}}},
+		{Pairs: []LogPair{{"value", value}}},
+		{Pairs: []LogPair{{"result", chip.V[vIndex]}}},
+	})
 }
 
 func (chip *Chip8) addtoRegister(register uint16, value uint16) {
-	chip.V[register>>8] += uint8(value)
+	vIndex := register >> 8
+
+	originalV := chip.V[vIndex]
+
+	chip.V[vIndex] += uint8(value)
+
+	LogOperation("addtoRegister", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"originalV", originalV}}},
+		{Pairs: []LogPair{{"value", value}}},
+		{Pairs: []LogPair{{"result", chip.V[vIndex]}}},
+	})
 }
 
 func (chip *Chip8) storeRegister(registerX uint16, registerY uint16) {
-	chip.V[registerX>>8] = chip.V[registerY>>4]
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	chip.V[vxIndex] = chip.V[vyIndex]
+
+	LogOperation("storeRegister", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"result", chip.V[vxIndex]}}},
+	})
 }
 
 func (chip *Chip8) orRegisters(registerX uint16, registerY uint16) {
-	chip.V[registerX>>8] |= chip.V[registerY>>4]
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	chip.V[vxIndex] |= chip.V[vyIndex]
+
+	LogOperation("orRegisters", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"result", chip.V[vxIndex]}}},
+	})
 }
 
 func (chip *Chip8) andRegisters(registerX uint16, registerY uint16) {
-	chip.V[registerX>>8] &= chip.V[registerY>>4]
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	chip.V[vxIndex] &= chip.V[vyIndex]
+
+	LogOperation("andRegisters", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"result", chip.V[vxIndex]}}},
+	})
 }
 
 func (chip *Chip8) xorRegisters(registerX uint16, registerY uint16) {
-	chip.V[registerX>>8] ^= chip.V[registerY>>4]
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	chip.V[vxIndex] ^= chip.V[vyIndex]
+
+	LogOperation("xorRegisters", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"result", chip.V[vxIndex]}}},
+	})
 }
 
-func (chip *Chip8) addRegistersWithCarry(opcode uint16, value uint16) {
-	// TODO: 255 + 1 = 0, not 256 becuase of type. Failing overflow test below
-	temp := uint16(chip.V[opcode>>8]) + uint16(chip.V[opcode>>4])
-	if temp > 255 {
+func (chip *Chip8) addRegistersWithCarry(registerX uint16, registerY uint16) {
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	additionTemp := uint16(originalVx) + uint16(originalVy)
+	if additionTemp > 255 {
 		chip.V[0xF] = 1
 	} else {
 		chip.V[0xF] = 0
 	}
 
-	chip.V[opcode>>8] = uint8(temp)
+	chip.V[vxIndex] = uint8(additionTemp)
+
+	LogOperation("addRegistersWithCarry", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"result", chip.V[vxIndex]}, {"carry", chip.V[0xF] == 0}}},
+	})
 }
 
 func (chip *Chip8) subtractRegistersWithBorrowVxVy(registerX uint16, registerY uint16) {
-	if chip.V[registerX>>8] < chip.V[registerY>>4] {
-		chip.V[0xF] = 0
-	} else {
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	if originalVx >= originalVy {
 		chip.V[0xF] = 1
+	} else {
+		chip.V[0xF] = 0
 	}
 
-	chip.V[registerX>>8] -= chip.V[registerY>>4]
+	chip.V[vxIndex] = originalVx - originalVy
+
+	LogOperation("subtractRegistersWithBorrowVxVy", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"result", chip.V[vxIndex]}, {"borrow", chip.V[0xF] == 0}}},
+	})
 }
 
 func (chip *Chip8) shiftRight(registerX uint16, registerY uint16) {
-	chip.V[registerX>>8] = chip.V[registerY>>4] >> 1
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	chip.V[vxIndex] = chip.V[vyIndex] >> 1
+
+	LogOperation("shiftRight", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"result", chip.V[vxIndex]}}},
+	})
 }
 
 func (chip *Chip8) subtractRegistersWithBorrowVyVx(registerX uint16, registerY uint16) {
-	if chip.V[registerY>>4] < chip.V[registerX>>8] {
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	if originalVy < originalVx {
 		chip.V[0xF] = 0
 	} else {
 		chip.V[0xF] = 1
 	}
 
-	chip.V[registerY>>4] -= chip.V[registerX>>8]
+	chip.V[vyIndex] -= chip.V[vxIndex]
+
+	LogOperation("subtractRegistersWithBorrowVyVx", []LogDetail{
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"result", chip.V[vyIndex]}, {"borrow", chip.V[0xF] == 0}}},
+	})
 }
 
 func (chip *Chip8) shiftLeft(registerX uint16, registerY uint16) {
-	chip.V[registerX>>8] = chip.V[registerY>>4] << 1
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+
+	chip.V[vxIndex] = chip.V[vyIndex] << 1
+
+	LogOperation("shiftRight", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"result", chip.V[vxIndex]}}},
+	})
 }
 
 func (chip *Chip8) skipIfRegistersNotEqual(registerX uint16, registerY uint16) {
-	if chip.V[registerX>>8] != chip.V[registerY>>4] {
+	vxIndex := registerX >> 8
+	vyIndex := registerY >> 4
+
+	originalVx := chip.V[vxIndex]
+	originalVy := chip.V[vyIndex]
+	originalPc := chip.pc
+
+	registersNotEqual := chip.V[vxIndex] != chip.V[vyIndex]
+	if registersNotEqual {
 		chip.pc += 2
 	}
+
+	LogOperation("skipIfRegistersEqual", []LogDetail{
+		{Pairs: []LogPair{{"vxIndex", vxIndex}, {"originalVx", originalVx}}},
+		{Pairs: []LogPair{{"vyIndex", vyIndex}, {"originalVy", originalVy}}},
+		{Pairs: []LogPair{{"registersNotEqual", registersNotEqual}}},
+		{Pairs: []LogPair{{"originalPc", originalPc}, {"PC", chip.pc}}},
+	})
 }
 
 func (chip *Chip8) setIndexRegister(address uint16) {
+	prevIndex := chip
+
 	chip.I = address
+
+	LogOperation("setIndexRegister", []LogDetail{
+		{Pairs: []LogPair{{"prevIndex", prevIndex}, {"address", address}}},
+		{Pairs: []LogPair{{"newIndex", chip.I}}},
+	})
 }
 
 func (chip *Chip8) jumpToAddressPlusV0(value uint16) {
+	prevPc := chip.pc
+
 	chip.pc = uint16(chip.V[0]) + value
+
+	LogOperation("jumpToAddressPlusV0", []LogDetail{
+		{Pairs: []LogPair{{"prevPC", prevPc}, {"value", value}}},
+		{Pairs: []LogPair{{"newPC", chip.pc}}},
+	})
 }
 
 func (chip *Chip8) randomWithMask(register uint16, mask uint16) {
-	chip.V[register>>8] = uint8(mask) & uint8(rand.Intn(255))
+	vIndex := register >> 4
+	vValue := chip.V[vIndex]
+
+	randomVal := uint8(rand.Intn(255))
+
+	chip.V[vIndex] = uint8(mask) & uint8(rand.Intn(255))
+
+	LogOperation("randomWithMask", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"vValue", vValue}}},
+		{Pairs: []LogPair{{"mask", mask}, {"randomVal", randomVal}}},
+		{Pairs: []LogPair{{"result", chip.V[vIndex]}}},
+	})
 }
 
 func (chip *Chip8) drawSprite(registerX uint16, registerY uint16, height uint16) {
@@ -263,6 +475,11 @@ func (chip *Chip8) drawSprite(registerX uint16, registerY uint16, height uint16)
 			}
 		}
 	}
+
+	LogOperation("drawSprite", []LogDetail{
+		{Pairs: []LogPair{{"xLoc", x}, {"yLoc", y}}},
+		{Pairs: []LogPair{{"height", height}, {"collision", chip.V[0xF] == 1}}},
+	})
 }
 
 func (chip *Chip8) skipIfKeyPressed(opcode uint16) {

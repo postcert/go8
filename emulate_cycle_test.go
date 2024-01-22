@@ -264,3 +264,39 @@ func TestEmulateCycleAddRegistersWithCarry_Success(t *testing.T) {
 	assert.Equal(t, uint8(0xFF), chip.V[0])
 	assert.Equal(t, uint8(0x0), chip.V[0xF])
 }
+
+func TestSubtractRegistersWithBorrowVxVy_NoBorrow(t *testing.T) {
+	chip := NewChip8()
+	chip.V[0] = 0x2
+	chip.V[1] = 0x1
+	chip.subtractRegistersWithBorrowVxVy(0x0, 0x10)
+	assert.Equal(t, uint8(0x1), chip.V[0])
+	assert.Equal(t, uint8(0x1), chip.V[0xF])
+}
+
+func TestEmulateCycleSubtractRegistersWithBorrowVxVy_NoBorrow(t *testing.T) {
+	chip := NewChip8()
+	chip.V[0] = 0x2
+	chip.V[1] = 0x1
+	chip.emulateCycle(0x8015)
+	assert.Equal(t, uint8(0x1), chip.V[0])
+	assert.Equal(t, uint8(0x1), chip.V[0xF])
+}
+
+func TestSubtractRegistersWithBorrowVxVy_Borrow(t *testing.T) {
+	chip := NewChip8()
+	chip.V[0] = 0x1
+	chip.V[1] = 0x2
+	chip.subtractRegistersWithBorrowVxVy(0x0, 0x10)
+	assert.Equal(t, uint8(0xFF), chip.V[0])
+	assert.Equal(t, uint8(0x0), chip.V[0xF])
+}
+
+func TestEmulateCycleSubtractRegistersWithBorrowVxVy_Borrow(t *testing.T) {
+	chip := NewChip8()
+	chip.V[0] = 0x1
+	chip.V[1] = 0x2
+	chip.emulateCycle(0x8015)
+	assert.Equal(t, uint8(0xFF), chip.V[0])
+	assert.Equal(t, uint8(0x0), chip.V[0xF])
+}
