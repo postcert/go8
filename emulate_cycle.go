@@ -435,12 +435,13 @@ func (chip *Chip8) setIndexRegister(address uint16) {
 
 func (chip *Chip8) jumpToAddressPlusV0(value uint16) {
 	prevPc := chip.pc
+	vValue := chip.V[0]
 
-	chip.pc = uint16(chip.V[0]) + value
+	chip.pc = uint16(vValue) + value
 
 	LogOperation("jumpToAddressPlusV0", []LogDetail{
-		{Pairs: []LogPair{{"prevPC", prevPc}, {"value", value}}},
-		{Pairs: []LogPair{{"newPC", chip.pc}}},
+		{Pairs: []LogPair{{"V0", vValue}, {"value", value}}},
+		{Pairs: []LogPair{{"prevPC", prevPc}, {"newPC", chip.pc}}},
 	})
 }
 
@@ -483,56 +484,170 @@ func (chip *Chip8) drawSprite(registerX uint16, registerY uint16, height uint16)
 }
 
 func (chip *Chip8) skipIfKeyPressed(opcode uint16) {
-	if chip.keys[chip.V[opcode>>8]] != 0 {
+	vIndex := opcode >> 8
+	keyRegister := chip.V[vIndex]
+	prevPc := chip.pc
+
+	keyPressed := chip.keys[keyRegister] != 0
+	if keyPressed {
 		chip.pc += 2
 	}
+
+	LogOperation("skipIfKeyPressed", []LogDetail{
+		{Pairs: []LogPair{{"key", vIndex}, {"keyPressed", keyPressed}}},
+		{Pairs: []LogPair{{"prevPC", prevPc}, {"newPC", chip.pc}}},
+	})
 }
 
 func (chip *Chip8) skipIfKeyNotPressed(opcode uint16) {
-	if chip.keys[chip.V[opcode>>8]] == 0 {
+	vIndex := opcode >> 8
+	keyRegister := chip.V[vIndex]
+	prevPc := chip.pc
+
+	keyNotPressed := chip.keys[keyRegister] == 0
+	if keyNotPressed {
 		chip.pc += 2
 	}
+
+	LogOperation("skipIfKeyNotPressed", []LogDetail{
+		{Pairs: []LogPair{{"key", vIndex}, {"keyNotPressed", keyNotPressed}}},
+		{Pairs: []LogPair{{"prevPC", prevPc}, {"newPC", chip.pc}}},
+	})
 }
 
 func (chip *Chip8) getDelayTimer(register uint16) {
-	chip.V[register>>8] = chip.delayTimer
+	vIndex := register >> 8
+	originalV := chip.V[vIndex]
+
+	chip.V[vIndex] = chip.delayTimer
+
+	LogOperation("getDelayTimer", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"originalV", originalV}}},
+		{Pairs: []LogPair{{"newV", chip.V[vIndex]}}},
+	})
 }
 
 func (chip *Chip8) waitForKeyPress(opcode uint16) {
 	chip.waitingForKeyPress = true
-	chip.keyRegister = uint8(opcode >> 8)
+	keyRegister := uint8(opcode >> 8)
+
+	chip.keyRegister = keyRegister
+
+	LogOperation("waitingForKeyPress", []LogDetail{
+		{Pairs: []LogPair{{"keyRegister", keyRegister}}},
+	})
 }
 
 func (chip *Chip8) setDelayTimer(register uint16) {
-	chip.delayTimer = chip.V[register>>8]
+	prevDelayTimer := chip.delayTimer
+
+	vIndex := register >> 8
+	vValue := chip.V[vIndex]
+
+	chip.delayTimer = vValue
+
+	LogOperation("setDelayTimer", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"vValue", vValue}}},
+		{Pairs: []LogPair{{"prevDelayTimer", prevDelayTimer}, {"newDelayTimer", chip.delayTimer}}},
+	})
 }
 
 func (chip *Chip8) setSoundTimer(register uint16) {
-	chip.soundTimer = chip.V[register>>8]
+	prevSoundTimer := chip.soundTimer
+
+	vIndex := register >> 8
+	vValue := chip.V[vIndex]
+
+	chip.soundTimer = vValue
+
+	LogOperation("setSoundTimer", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"vValue", vValue}}},
+		{Pairs: []LogPair{{"prevSoundTimer", prevSoundTimer}, {"newSoundTimer", chip.soundTimer}}},
+	})
 }
 
 func (chip *Chip8) addToIndexRegister(register uint16) {
-	chip.I += uint16(chip.V[register>>8])
+	prevIndex := chip.I
+
+	vIndex := register >> 8
+	vValue := chip.V[vIndex]
+
+	chip.I += uint16(vValue)
+
+	LogOperation("addToIndexRegister", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"vValue", vValue}}},
+		{Pairs: []LogPair{{"prevIndex", prevIndex}, {"newIndex", chip.I}}},
+	})
 }
 
 func (chip *Chip8) setIndexToSpriteAddress(register uint16) {
-	chip.I = uint16(chip.V[register>>8]) * 5
+	prevIndex := chip.I
+
+	vIndex := register >> 8
+	vValue := chip.V[vIndex]
+
+	chip.I = uint16(vValue) * 5
+
+	LogOperation("setIndexToSpriteAddress", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"vValue", vValue}}},
+		{Pairs: []LogPair{{"prevIndex", prevIndex}, {"newIndex", chip.I}}},
+	})
 }
 
 func (chip *Chip8) storeBcd(register uint16) {
-	chip.memory[chip.I] = chip.V[register>>8] / 100
-	chip.memory[chip.I+1] = (chip.V[register>>8] / 10) % 10
-	chip.memory[chip.I+2] = (chip.V[register>>8] % 100) % 10
+	vIndex := register >> 8
+	vValue := chip.V[vIndex]
+
+	chip.memory[chip.I] = vValue / 100
+	chip.memory[chip.I+1] = (vValue / 10) % 10
+	chip.memory[chip.I+2] = (vValue % 100) % 10
+
+	LogOperation("storeBcd", []LogDetail{
+		{Pairs: []LogPair{{"vIndex", vIndex}, {"vValue", vValue}}},
+		{Pairs: []LogPair{{"BCD 100's", chip.memory[chip.I]}}},
+		{Pairs: []LogPair{{"BCD 10's", chip.memory[chip.I+1]}}},
+		{Pairs: []LogPair{{"BCD 1's", chip.memory[chip.I+2]}}},
+	})
 }
 
 func (chip *Chip8) storeRegistersToMemory(upperRegister uint16) {
-	for i := uint16(0); i <= upperRegister>>8; i++ {
+	upperRegisterIndex := upperRegister >> 8
+
+	var details []LogDetail
+	for i := uint16(0); i <= upperRegisterIndex; i++ {
+		details = append(details, LogDetail{Pairs: []LogPair{{"index", chip.memory[chip.I+i]}, {"register", i}}})
+
+		prevValue := chip.memory[chip.I+i]
+
 		chip.memory[chip.I+i] = chip.V[i]
+		details = append(details, LogDetail{Pairs: []LogPair{{"prevValue", prevValue}, {"newValue", chip.memory[chip.I+i]}}})
 	}
+
+	header := []LogDetail{
+		{Pairs: []LogPair{{"upperRegisterIndex", upperRegisterIndex}, {"indexRegister", chip.I}}},
+	}
+
+	header = append(header, details...)
+	LogOperation("storeRegistersToMemory", header)
 }
 
 func (chip *Chip8) readRegistersFromMemory(upperRegister uint16) {
-	for i := uint16(0); i <= upperRegister>>8; i++ {
+	upperRegisterIndex := upperRegister >> 8
+
+	var details []LogDetail
+	for i := uint16(0); i <= upperRegisterIndex; i++ {
+		details = append(details, LogDetail{Pairs: []LogPair{{"register", i}, {"index", chip.memory[chip.I+i]}}})
+
+		prevValue := chip.V[i]
+
 		chip.V[i] = chip.memory[chip.I+i]
+		details = append(details, LogDetail{Pairs: []LogPair{{"prevValue", prevValue}, {"newValue", chip.V[i]}}})
 	}
+
+	header := []LogDetail{
+		{Pairs: []LogPair{{"upperRegisterIndex", upperRegisterIndex}, {"indexRegister", chip.I}}},
+	}
+
+	header = append(header, details...)
+	LogOperation("readRegistersFromMemory", header)
 }
